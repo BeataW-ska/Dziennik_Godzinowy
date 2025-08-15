@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Dziennik">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Dziennik godzinowy</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --card: #ffffff;
+      --primary: #1976d2;
+      --text: #1b1b1b;
+      --muted: #5f6b7a;
+      --border: #e4e7eb;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    header {
+      position: sticky; top: 0; z-index: 20;
+      background: var(--bg); padding: 10px 14px 8px; border-bottom: 1px solid var(--border);
+    }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .row.wrap { flex-wrap: wrap; }
+    .grow { flex: 1; }
+    input[type="date"] {
+      appearance: none; border: 1px solid var(--border); background: var(--card);
+      border-radius: 12px; padding: 10px 12px; font-size: 16px; width: 100%;
+    }
+    button {
+      border: none; background: var(--primary); color: white; border-radius: 12px;
+      padding: 10px 14px; font-weight: 600; font-size: 15px;
+    }
+    button.ghost { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+    main { padding: 12px; }
+    .hour-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 12px; margin-bottom: 10px;
+    }
+    .hour-title { display: flex; align-items: center; justify-content: space-between; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px;}
+    input[type="text"], textarea, select {
+      width: 100%; border: 1px solid var(--border); border-radius: 10px; padding: 10px; font-size: 16px; background: #fff;
+    }
+    textarea { min-height: 60px; }
+    input[type="range"] { width: 100%; }
+    .pill {
+      display: inline-block; padding: 6px 10px; border-radius: 999px; border:1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+    }
+    .toolbar {
+      position: sticky; bottom: 0; background: var(--bg); border-top: 1px solid var(--border);
+      padding: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    }
+    .hint { font-size: 12px; color: var(--muted); margin: 0 12px 8px; }
+    .small { font-size: 12px; color: var(--muted); }
+    .value-badge { font-weight: 700; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="row wrap">
+      <button id="prevDate" class="ghost">◀︎</button>
+      <div class="grow"><input id="datePicker" type="date" /></div>
+      <button id="nextDate" class="ghost">▶︎</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="fillEmpty" class="ghost">Uzupełnij puste</button>
+      <button id="copyPrev" class="ghost">Kopiuj z poprzedniej godz.</button>
+      <button id="clearDay" class="ghost">Wyczyść dzień</button>
+    </div>
+  </header>
+
+  <p class="hint">Godziny od 08:00 do 23:00. Dane zapisują się automatycznie w pamięci urządzenia.</p>
+
+  <main id="hoursContainer"></main>
+
+  <div class="toolbar">
+    <button id="exportCsv">Eksport CSV</button>
+    <button id="backupJson" class="ghost">Backup JSON</button>
+    <button id="restoreJson" class="ghost">Przywróć JSON</button>
+  </div>
+
+  <input type="file" id="restoreInput" accept=".json" style="display:none" />
+
+  <script>
+    // --- Helpers ---
+    const HOURS = Array.from({length: 16}, (_,i) => i + 8); // 8..23
+    const $ = sel => document.querySelector(sel);
+    const pad2 = n => String(n).padStart(2,'0');
+    const todayStr = () => new Date().toISOString().slice(0,10);
+
+    // Simple storage layer
+    const KEY = 'dziennik-v1';
+    const loadAll = () => JSON.parse(localStorage.getItem(KEY) || '{}');
+    const saveAll = (data) => localStorage.setItem(KEY, JSON.stringify(data));
+
+    function defaultDay(dateStr) {
+      const obj = {};
+      for (const h of HOURS) {
+        obj[pad2(h)+':00'] = { activity:'', mood:null, pleasure:null, satisfaction:null, comment:'' };
+      }
+      return { date: dateStr, entries: obj };
+    }
+
+    function getDay(dateStr) {
+      const db = loadAll();
+      if (!db[dateStr]) db[dateStr] = defaultDay(dateStr);
+      return db[dateStr];
+    }
+
+    function setDay(dayObj) {
+      const db = loadAll();
+      db[dayObj.date] = dayObj;
+      saveAll(db);
+    }
+
+    // Build UI
+    const container = $('#hoursContainer');
+
+    function inputNumberRow(id, labelText, min, max, value) {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+        <label for="${id}">${labelText} <span class="value-badge" id="${id}-val">${value ?? ''}</span></label>
+        <input id="${id}" type="range" min="${min}" max="${max}" step="1" value="${value ?? Math.floor((min+max)/2)}">
+      `;
+      return wrap;
+    }
+
+    function hourCard(hour, entry, prevEntry) {
+      const hStr = pad2(hour)+':00';
+      const card = document.createElement('section');
+      card.className = 'hour-card';
+      card.dataset.hour = hStr;
+      card.innerHTML = `
+        <div class="hour-title">
+          <div><strong>${hStr}</strong></div>
+          <div class="pill">${entry.activity ? entry.activity : '— brak aktywności —'}</div>
+        </div>
+        <div class="grid" style="margin-top:10px">
+          <div>
+            <label>Aktywność</label>
+            <input type="text" id="act-${hStr}" placeholder="np. praca, spacer, obiad" value="${entry.activity ?? ''}">
+          </div>
+          <div>
+            <label>Komentarz</label>
+            <input type="text" id="com-${hStr}" placeholder="opcjonalnie" value="${entry.comment ?? ''}">
+          </div>
+        </div>
+        <div class="grid" style="margin-top:8px">
+          <div id="mood-${hStr}"></div>
+          <div id="pleasure-${hStr}"></div>
+        </div>
+        <div class="grid" style="margin-top:8px">
+          <div id="satisfaction-${hStr}"></div>
+          <div>
+            <label>&nbsp;</label>
+            <div class="row">
+              <button class="ghost quick" data-target="mood" data-val="0">😖 0</button>
+              <button class="ghost quick" data-target="mood" data-val="5">😐 5</button>
+              <button class="ghost quick" data-target="mood" data-val="10">🙂 10</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Insert range inputs
+      const moodWrap = card.querySelector(`#mood-${hStr}`);
+      const pleasureWrap = card.querySelector(`#pleasure-${hStr}`);
+      const satisfactionWrap = card.querySelector(`#satisfaction-${hStr}`);
+
+      moodWrap.appendChild(inputNumberRow(`mood-${hStr}-range`, 'Nastrój (0–10)', 0, 10, entry.mood));
+      pleasureWrap.appendChild(inputNumberRow(`pleasure-${hStr}-range`, 'Przyjemność (0–10)', 0, 10, entry.pleasure));
+      satisfactionWrap.appendChild(inputNumberRow(`satisfaction-${hStr}-range`, 'Satysfakcja (0–19)', 0, 19, entry.satisfaction));
+
+      // Bind changes
+      const act = card.querySelector(`#act-${hStr}`);
+      const com = card.querySelector(`#com-${hStr}`);
+      const mood = card.querySelector(`#mood-${hStr}-range`);
+      const pleasure = card.querySelector(`#pleasure-${hStr}-range`);
+      const satisfaction = card.querySelector(`#satisfaction-${hStr}-range`);
+      const pill = card.querySelector('.pill');
+
+      function save() {
+        const dateStr = $('#datePicker').value;
+        const day = getDay(dateStr);
+        day.entries[hStr] = {
+          activity: act.value.trim(),
+          mood: Number(mood.value),
+          pleasure: Number(pleasure.value),
+          satisfaction: Number(satisfaction.value),
+          comment: com.value.trim()
+        };
+        setDay(day);
+        pill.textContent = act.value.trim() || '— brak aktywności —';
+      }
+
+      for (const el of [act, com, mood, pleasure, satisfaction]) {
+        el.addEventListener('change', save);
+        el.addEventListener('input', (e) => {
+          const span = card.querySelector(`#${e.target.id}-val`);
+          if (span) span.textContent = e.target.value;
+        });
+      }
+
+      // Quick mood buttons
+      card.querySelectorAll('.quick').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const v = btn.dataset.val;
+          mood.value = v;
+          card.querySelector(`#${mood.id}-val`).textContent = v;
+          save();
+        });
+      });
+
+      return card;
+    }
+
+    function renderDay(dateStr) {
+      const day = getDay(dateStr);
+      container.innerHTML = '';
+      let prev = null;
+      for (const h of HOURS) {
+        const entry = day.entries[pad2(h)+':00'];
+        const card = hourCard(h, entry, prev);
+        container.appendChild(card);
+        prev = entry;
+      }
+      // Scroll to current hour if same date
+      const today = todayStr();
+      if (dateStr === today) {
+        const now = new Date();
+        const h = now.getHours();
+        const target = container.querySelector(`[data-hour="${pad2(Math.max(8, Math.min(23,h)))}:00"]`);
+        if (target) target.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    }
+
+    function setDateInput(val) {
+      $('#datePicker').value = val;
+    }
+
+    function shiftDate(days) {
+      const d = new Date($('#datePicker').value);
+      d.setDate(d.getDate()+days);
+      const v = d.toISOString().slice(0,10);
+      setDateInput(v);
+      renderDay(v);
+    }
+
+    // Toolbar actions
+    $('#exportCsv').addEventListener('click', () => {
+      const db = loadAll();
+      const rows = [['Data','Godzina','Aktywność','Nastrój','Przyjemność','Satysfakcja','Komentarz']];
+      const dates = Object.keys(db).sort();
+      dates.forEach(date => {
+        const entries = db[date].entries;
+        Object.keys(entries).forEach(hour => {
+          const e = entries[hour];
+          rows.push([date, hour, e.activity ?? '', e.mood ?? '', e.pleasure ?? '', e.satisfaction ?? '', (e.comment ?? '').replace(/\n/g,' ')]);
+        });
+      });
+      const csv = rows.map(r => r.map(x => `"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'dziennik.csv';
+      a.click();
+    });
+
+    $('#backupJson').addEventListener('click', () => {
+      const blob = new Blob([localStorage.getItem(KEY) || '{}'], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'dziennik-backup.json';
+      a.click();
+    });
+
+    $('#restoreJson').addEventListener('click', () => $('#restoreInput').click());
+    $('#restoreInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const obj = JSON.parse(reader.result);
+          if (typeof obj !== 'object') throw new Error('Invalid JSON');
+          saveAll(obj);
+          renderDay($('#datePicker').value);
+          alert('Przywrócono dane.');
+        } catch(err) {
+          alert('Błąd przywracania: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    $('#fillEmpty').addEventListener('click', () => {
+      const dateStr = $('#datePicker').value;
+      const day = getDay(dateStr);
+      let last = null;
+      for (const h of HOURS) {
+        const key = pad2(h)+':00';
+        const e = day.entries[key];
+        if (e.activity || e.comment || e.mood !== null || e.pleasure !== null || e.satisfaction !== null) {
+          last = e;
+        } else if (last) {
+          day.entries[key] = {...last}; // copy previous non-empty
+        }
+      }
+      setDay(day);
+      renderDay(dateStr);
+    });
+
+    $('#copyPrev').addEventListener('click', () => {
+      // copy previous hour into the hour currently in view (best-effort: use first visible card)
+      const cards = [...document.querySelectorAll('.hour-card')];
+      const rects = cards.map(c => [c, c.getBoundingClientRect().top]);
+      rects.sort((a,b) => Math.abs(a[1]) - Math.abs(b[1]));
+      const current = rects[0]?.[0];
+      if (!current) return;
+      const hourStr = current.dataset.hour;
+      const h = parseInt(hourStr.slice(0,2),10);
+      const prevH = Math.max(8, h-1);
+      const dateStr = $('#datePicker').value;
+      const day = getDay(dateStr);
+      const prev = day.entries[pad2(prevH)+':00'];
+      day.entries[hourStr] = {...prev};
+      setDay(day);
+      renderDay(dateStr);
+    });
+
+    $('#clearDay').addEventListener('click', () => {
+      const dateStr = $('#datePicker').value;
+      if (!confirm('Na pewno wyczyścić wszystkie wpisy dla ' + dateStr + '?')) return;
+      const day = defaultDay(dateStr);
+      setDay(day);
+      renderDay(dateStr);
+    });
+
+    // Date picker init and nav
+    $('#prevDate').addEventListener('click', () => shiftDate(-1));
+    $('#nextDate').addEventListener('click', () => shiftDate(+1));
+
+    // Init app
+    window.addEventListener('load', () => {
+      const d = todayStr();
+      setDateInput(d);
+      renderDay(d);
+
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./service-worker.js');
+      }
+    });
+  </script>
+</body>
+</html>
