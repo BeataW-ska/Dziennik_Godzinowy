@@ -15,11 +15,25 @@
  margin: 0;
  padding: 0;
  }
- header, footer {
+
+ header {
+ display: flex;
+ flex-wrap: wrap;
+ gap: 6px;
+ background: #222;
+ padding: 10px;
+ position: sticky;
+ top: 0;
+ }
+
+
+
+footer {
  padding: 10px;
  background: #222;
  border-bottom: 1px solid #444;
  }
+
  button {
  background: #333;
  color: #fff;
@@ -74,6 +88,9 @@
  }
  </style>
 </head>
+
+
+
 <body>
  <header>
  <button id="prevDate"> </button>
