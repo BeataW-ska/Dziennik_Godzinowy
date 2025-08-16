@@ -119,7 +119,7 @@ footer {
  const $ = sel => document.querySelector(sel);
  const pad2 = n => String(n).padStart(2,'0');
  const todayStr = () => new Date().toISOString().slice(0,10);
- const safeId = s => s.replace(/:/g, '.'); //"08:00" -> "08.00"
+ const safeId = s => s.replace(/:/g, '-'); //"08:00" -> "08.00"
 
  // Simple storage layer
  const KEY = 'dziennik-v1';
