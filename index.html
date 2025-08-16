@@ -93,9 +93,9 @@ footer {
 
 <body>
  <header>
- <button id="prevDate"> </button>
+ <button id="prevDate">◀︎</button>
  <input type="date" id="datePicker">
- <button id="nextDate"> </button>
+ <button id="nextDate">▶︎</button>
  <button id="fillEmpty">Wypełnij luki</button>
  <button id="copyPrev">Skopiuj poprzednią</button>
  <button id="clearDay">Wyczyść dzień</button>
@@ -119,6 +119,7 @@ footer {
  const $ = sel => document.querySelector(sel);
  const pad2 = n => String(n).padStart(2,'0');
  const todayStr = () => new Date().toISOString().slice(0,10);
+ const safeId = s => s.replace(/:/g, '.'); //"08:00" -> "08.00"
 
  // Simple storage layer
  const KEY = 'dziennik-v1';
@@ -157,11 +158,14 @@ footer {
  return wrap;
  }
 
- function hourCard(hour, entry, prevEntry) {
- const hStr = pad2(hour)+':00';
+function hourCard(hour, entry, prevEntry) {
+ const hStr = pad2(hour)+':00'; // wartość logiczna klucza
+ const sid = safeId(hStr); // wersja bez dwukropka do ID
+
  const card = document.createElement('section');
  card.className = 'hour-card';
  card.dataset.hour = hStr;
+
  card.innerHTML = `
  <div class="hour-title">
  <div><strong>${hStr}</strong></div>
@@ -170,19 +174,19 @@ footer {
  <div class="grid" style="margin-top:10px">
  <div>
  <label>Aktywność</label>
- <input type="text" id="act-${hStr}" placeholder="np. spacer, obiad" value="${entry.activity ?? ''}">
+ <input type="text" id="act-${sid}" placeholder="np. spacer, obiad" value="${entry.activity ?? ''}">
  </div>
  <div>
  <label>Komentarz</label>
- <input type="text" id="com-${hStr}" placeholder="opcjonalnie" value="${entry.comment ?? ''}">
+ <input type="text" id="com-${sid}" placeholder="opcjonalnie" value="${entry.comment ?? ''}">
  </div>
  </div>
  <div class="grid" style="margin-top:8px">
- <div id="mood-${hStr}"></div>
- <div id="pleasure-${hStr}"></div>
+ <div id="mood-${sid}"></div>
+ <div id="pleasure-${sid}"></div>
  </div>
  <div class="grid" style="margin-top:8px">
- <div id="satisfaction-${hStr}"></div>
+ <div id="satisfaction-${sid}"></div>
  <div>
  <label>&nbsp;</label>
  <div class="row">
@@ -194,21 +198,21 @@ footer {
  </div>
  `;
 
- // Insert range inputs
- const moodWrap = card.querySelector(`#mood-${hStr}`);
- const pleasureWrap = card.querySelector(`#pleasure-${hStr}`);
- const satisfactionWrap = card.querySelector(`#satisfaction-${hStr}`);
+ // Insert range inputs (ID już bez dwukropka)
+ const moodWrap = card.querySelector(`#mood-${sid}`);
+ const pleasureWrap = card.querySelector(`#pleasure-${sid}`);
+ const satisfactionWrap = card.querySelector(`#satisfaction-${sid}`);
 
- moodWrap.appendChild(inputNumberRow(`mood-${hStr}-range`, 'Nastrój (0–10)', 0, 10, entry.mood));
- pleasureWrap.appendChild(inputNumberRow(`pleasure-${hStr}-range`, 'Przyjemność (0–10)', 0, 10, entry.pleasure));
- satisfactionWrap.appendChild(inputNumberRow(`satisfaction-${hStr}-range`, 'Satysfakcja (0–19)', 0, 19, entry.satisfaction));
+ moodWrap.appendChild(inputNumberRow(`mood-${sid}-range`, 'Nastrój (0–10)', 0, 10, entry.mood));
+ pleasureWrap.appendChild(inputNumberRow(`pleasure-${sid}-range`, 'Przyjemność (0–10)', 0, 10, entry.pleasure));
+ satisfactionWrap.appendChild(inputNumberRow(`satisfaction-${sid}-range`, 'Satysfakcja (0–19)', 0, 19, entry.satisfaction));
 
  // Bind changes
- const act = card.querySelector(`#act-${hStr}`);
- const com = card.querySelector(`#com-${hStr}`);
- const mood = card.querySelector(`#mood-${hStr}-range`);
- const pleasure = card.querySelector(`#pleasure-${hStr}-range`);
- const satisfaction = card.querySelector(`#satisfaction-${hStr}-range`);
+ const act = card.querySelector(`#act-${sid}`);
+ const com = card.querySelector(`#com-${sid}`);
+ const mood = card.querySelector(`#mood-${sid}-range`);
+ const pleasure = card.querySelector(`#pleasure-${sid}-range`);
+ const satisfaction = card.querySelector(`#satisfaction-${sid}-range`);
  const pill = card.querySelector('.pill');
 
  function save() {
@@ -244,8 +248,7 @@ footer {
  });
 
  return card;
- }
-
+}
  function renderDay(dateStr) {
  const day = getDay(dateStr);
  container.innerHTML = '';
