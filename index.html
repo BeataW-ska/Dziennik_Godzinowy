@@ -173,29 +173,28 @@ function hourCard(hour, entry, prevEntry) {
  card.dataset.hour = hStr;
 
  card.innerHTML = `
- <div class="hour-title">
- <div><strong>${hStr}</strong></div>
- </div>
- <div class="grid" style="margin-top:5px">
+  <div class="hour-title">
+    <div><strong>${hStr}</strong></div>
+  </div>
+  <div class="grid" style="margin-top:5px">
 
- <div class="form-row">
- <label for="aktywnosc">Aktywność</label>
- <input type="text" id="act-${sid}" placeholder="np. spacer, obiad" value="${entry.activity ?? ''}">
- </div>
+    <div class="form-row">
+      <label for="act-${sid}">Aktywność</label>
+      <input type="text" id="act-${sid}" placeholder="np. spacer, obiad" value="${entry.activity ?? ''}">
+    </div>
 
- <div class="form-row">
- <label for="komentarz">Komentarz</label>
- <input type="text" id="com-${sid}" placeholder="opcjonalnie" value="${entry.comment ?? ''}">
- </div>
- 
-<div class="grid" style="margin-top:4px">
- <id="mood-${sid}"></div>
- <div class="grid" style="margin-top:4px" id="pleasure-${sid}"></div>
- <div class="grid" style="margin-top:4px">
- <div id="satisfaction-${sid}"></div>
- 
- </div>
- `;
+    <div class="form-row">
+      <label for="com-${sid}">Komentarz</label>
+      <input type="text" id="com-${sid}" placeholder="opcjonalnie" value="${entry.comment ?? ''}">
+    </div>
+
+    <div class="form-row" id="mood-${sid}"></div>
+    <div class="form-row" id="pleasure-${sid}"></div>
+    <div class="form-row" id="satisfaction-${sid}"></div>
+
+  </div>
+`;
+
 
  // Insert range inputs (ID już bez dwukropka)
  const moodWrap = card.querySelector(`#mood-${sid}`);
