@@ -68,15 +68,6 @@ footer {
  padding: 2px 6px;
  border-radius: 4px;
  }
- .grid {
- display: grid;
- grid-template-columns: 1fr 1fr;
- gap: 10px;
- }
- .row {
- display: flex;
- gap: 4px;
- }
  label {
  font-size: 0.9em;
  display: block;
@@ -87,6 +78,24 @@ footer {
  color: #aaa;
  margin-left: 6px;
  }
+ .form-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr; /* 1/3 + 2/3 */
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.form-row label {
+  margin: 0; 
+  font-size: 0.95em;
+}
+
+.form-row input[type="range"],
+.form-row input[type="text"],
+.form-row textarea {
+  width: 100%;
+}
  </style>
 </head>
 
@@ -170,23 +179,23 @@ function hourCard(hour, entry, prevEntry) {
  card.innerHTML = `
  <div class="hour-title">
  <div><strong>${hStr}</strong></div>
- <div class="pill">${entry.activity ? entry.activity : '— brak aktywności —'}</div>
- </div>
  <div class="grid" style="margin-top:10px">
- <div>
- <label>Aktywność</label>
+
+ <div class="form-row">
+ <label for="aktywnosc">Aktywność</label>
  <input type="text" id="act-${sid}" placeholder="np. spacer, obiad" value="${entry.activity ?? ''}">
  </div>
- <div>
- <label>Komentarz</label>
+
+ <div class="form-row">
+ <label for="komentarz">Komentarz</label>
  <input type="text" id="com-${sid}" placeholder="opcjonalnie" value="${entry.comment ?? ''}">
  </div>
- </div>
- <div class="grid" style="margin-top:8px">
- <div id="mood-${sid}"></div>
- <div id="pleasure-${sid}"></div>
- </div>
- <div class="grid" style="margin-top:8px">
+ 
+ <div class="grid" style="margin-top:4px">
+ <div id="mood-${sid}"></div></div>
+ <div class="grid" style="margin-top:4px">
+ <div id="pleasure-${sid}"></div></div>
+ <div class="grid" style="margin-top:4px">
  <div id="satisfaction-${sid}"></div>
  
  </div>
