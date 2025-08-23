@@ -109,7 +109,7 @@ footer {
  <main id="hoursContainer"></main>
 
  <footer>
- <small>Dziennik PWA – dane zapisywane w Twojej przeglądarce</small>
+ <small>Dziennik Godzinowy – dane zapisywane w Twojej przeglądarce</small>
  </footer>
 
  <!-- Twój duży skrypt -->
@@ -187,14 +187,7 @@ function hourCard(hour, entry, prevEntry) {
  </div>
  <div class="grid" style="margin-top:8px">
  <div id="satisfaction-${sid}"></div>
- <div>
- <label>&nbsp;</label>
- <div class="row">
- <button class="ghost quick" data-target="mood" data-val="0"> 0</button>
- <button class="ghost quick" data-target="mood" data-val="5"> 5</button>
- <button class="ghost quick" data-target="mood" data-val="10"> 10</button>
- </div>
- </div>
+ 
  </div>
  `;
 
@@ -205,7 +198,7 @@ function hourCard(hour, entry, prevEntry) {
 
  moodWrap.appendChild(inputNumberRow(`mood-${sid}-range`, 'Nastrój (0–10)', 0, 10, entry.mood));
  pleasureWrap.appendChild(inputNumberRow(`pleasure-${sid}-range`, 'Przyjemność (0–10)', 0, 10, entry.pleasure));
- satisfactionWrap.appendChild(inputNumberRow(`satisfaction-${sid}-range`, 'Satysfakcja (0–19)', 0, 19, entry.satisfaction));
+ satisfactionWrap.appendChild(inputNumberRow(`satisfaction-${sid}-range`, 'Satysfakcja (0–10)', 0, 10, entry.satisfaction));
 
  // Bind changes
  const act = card.querySelector(`#act-${sid}`);
