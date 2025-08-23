@@ -158,6 +158,7 @@ input[type="text"], input[type="range"] {
 
  function inputNumberRow(id, labelText, min, max, value) {
  const wrap = document.createElement('div');
+ wrap.className = 'form-row';
  wrap.innerHTML = `
  <label for="${id}">${labelText} <span class="value-badge" id="${id}-val">${value ?? ''}</span></label>
  <input id="${id}" type="range" min="${min}" max="${max}" step="1" value="${value ?? Math.floor((min+max)/2)}">
