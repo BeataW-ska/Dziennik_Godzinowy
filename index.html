@@ -190,7 +190,9 @@ function hourCard(hour, entry, prevEntry) {
  <input type="text" id="com-${sid}" placeholder="opcjonalnie" value="${entry.comment ?? ''}">
  </div>
  
- <div class="form-row" style="margin-top:4px" id="mood-${sid}"></div>
+ <div class="form-row"> 
+ <label for="nastroj">Nastrój</label>
+ <id="mood-${sid}"></div>
  <div class="grid" style="margin-top:4px" id="pleasure-${sid}"></div>
  <div class="grid" style="margin-top:4px">
  <div id="satisfaction-${sid}"></div>
