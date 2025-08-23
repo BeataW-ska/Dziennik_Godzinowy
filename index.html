@@ -82,18 +82,16 @@ footer {
   align-items: center;
   gap: 10px;
   margin-bottom: 6px;
-}
-
-.form-row label {
+ }
+ .form-row label {
   margin: 0; 
   font-size: 0.95em;
-}
-
-.form-row input[type="range"],
-.form-row input[type="text"],
-.form-row textarea {
+ }
+ .form-row input[type="range"],
+ .form-row input[type="text"],
+ .form-row textarea {
   width: 100%;
-}
+ }
  </style>
 </head>
 
@@ -190,10 +188,7 @@ function hourCard(hour, entry, prevEntry) {
  <input type="text" id="com-${sid}" placeholder="opcjonalnie" value="${entry.comment ?? ''}">
  </div>
  
- <div class="form-row"> 
- <label for="nastroj">Nastrój</label>
- <id="mood-${sid}"></div>
- <div class="grid" style="margin-top:4px" id="pleasure-${sid}"></div>
+ 
  <div class="grid" style="margin-top:4px">
  <div id="satisfaction-${sid}"></div>
  
